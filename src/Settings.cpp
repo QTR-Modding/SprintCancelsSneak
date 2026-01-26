@@ -25,15 +25,14 @@ bool ModCompatibility::TUDM::StopSneak() {
 }
 
 RE::BSScript::Internal::AttachedScript* ModCompatibility::TUDM::GetScript() {
-    if (auto* virtualMachine = RE::BSScript::Internal::VirtualMachine::GetSingleton()) {
-        auto* handlePolicy = virtualMachine->GetObjectHandlePolicy();
-        const auto* bindPolicy = virtualMachine->GetObjectBindPolicy();
-        if (handlePolicy && bindPolicy) {
-            const auto newHandler = handlePolicy->GetHandleForObject(RE::TESQuest::FORMTYPE, quest_form);
-            if (newHandler != handlePolicy->EmptyHandle()) {
-                auto* vm_scripts_hashmap = &virtualMachine->attachedScripts;
-                const auto newHandlerScripts_it = vm_scripts_hashmap->find(newHandler);
-                if (newHandlerScripts_it != vm_scripts_hashmap->end()) {
+    if (const auto virtualMachine = RE::BSScript::Internal::VirtualMachine::GetSingleton()) {
+        const auto handlePolicy = virtualMachine->GetObjectHandlePolicy();
+        if (const auto bindPolicy = virtualMachine->GetObjectBindPolicy(); handlePolicy && bindPolicy) {
+            if (const auto newHandler = handlePolicy->GetHandleForObject(RE::TESQuest::FORMTYPE, quest_form);
+                newHandler != handlePolicy->EmptyHandle()) {
+                const auto vm_scripts_hashmap = &virtualMachine->attachedScripts;
+                if (const auto newHandlerScripts_it = vm_scripts_hashmap->find(newHandler);
+                    newHandlerScripts_it != vm_scripts_hashmap->end()) {
                     for (auto& script : newHandlerScripts_it->second) {
                         if (const auto oti = script->GetTypeInfo()) {
                             if (oti->name == script_name) {

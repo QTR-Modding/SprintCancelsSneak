@@ -1,7 +1,7 @@
 #include "Hooks.h"
 #include "Settings.h"
 
-RE::ButtonEvent* Hooks::CreateButtonEvent(RE::INPUT_DEVICE a_device, const RE::BSFixedString& user_event) {
+RE::ButtonEvent* Hooks::CreateButtonEvent(const RE::INPUT_DEVICE a_device, const RE::BSFixedString& user_event) {
     const auto control_map = RE::ControlMap::GetSingleton();
     const auto key = control_map->GetMappedKey(user_event, a_device);
     const auto button_event = RE::ButtonEvent::Create(a_device, user_event, key, 1.f, 0.f);
@@ -13,7 +13,7 @@ RE::ButtonEvent* Hooks::CreateSneakEvent(const RE::INPUT_DEVICE a_device) {
     return CreateButtonEvent(a_device, RE::UserEvents::GetSingleton()->sneak);
 }
 
-RE::ButtonEvent* Hooks::CreateSprintEvent(RE::INPUT_DEVICE a_device) {
+RE::ButtonEvent* Hooks::CreateSprintEvent(const RE::INPUT_DEVICE a_device) {
     return CreateButtonEvent(a_device, RE::UserEvents::GetSingleton()->sprint);
 }
 
@@ -54,7 +54,7 @@ void Hooks::InputHook::thunk(RE::BSTEventSource<RE::InputEvent*>* a_dispatcher, 
         return func(a_dispatcher, a_event);
     }
 
-    auto player = RE::PlayerCharacter::GetSingleton();
+    const auto player = RE::PlayerCharacter::GetSingleton();
     if (!player->IsMoving() || !player->IsSneaking()) {
         return func(a_dispatcher, a_event);
     }

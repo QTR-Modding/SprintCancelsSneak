@@ -2,17 +2,20 @@
 #include "logger.h"
 #include "Settings.h"
 
-void OnMessage(SKSE::MessagingInterface::Message* message) {
-    if (message->type == SKSE::MessagingInterface::kDataLoaded) {
-        Hooks::sneak_events[RE::INPUT_DEVICE::kKeyboard] = Hooks::CreateSneakEvent(RE::INPUT_DEVICE::kKeyboard);
-        Hooks::sneak_events[RE::INPUT_DEVICE::kMouse] = Hooks::CreateSneakEvent(RE::INPUT_DEVICE::kMouse);
-        Hooks::sneak_events[RE::INPUT_DEVICE::kGamepad] = Hooks::CreateSneakEvent(RE::INPUT_DEVICE::kGamepad);
+namespace {
+    // ReSharper disable once CppParameterMayBeConstPtrOrRef
+    void OnMessage(SKSE::MessagingInterface::Message* message) {
+        if (message->type == SKSE::MessagingInterface::kDataLoaded) {
+            Hooks::sneak_events[RE::INPUT_DEVICE::kKeyboard] = Hooks::CreateSneakEvent(RE::INPUT_DEVICE::kKeyboard);
+            Hooks::sneak_events[RE::INPUT_DEVICE::kMouse] = Hooks::CreateSneakEvent(RE::INPUT_DEVICE::kMouse);
+            Hooks::sneak_events[RE::INPUT_DEVICE::kGamepad] = Hooks::CreateSneakEvent(RE::INPUT_DEVICE::kGamepad);
 
-        Hooks::sprint_events[RE::INPUT_DEVICE::kKeyboard] = Hooks::CreateSprintEvent(RE::INPUT_DEVICE::kKeyboard);
-        Hooks::sprint_events[RE::INPUT_DEVICE::kMouse] = Hooks::CreateSprintEvent(RE::INPUT_DEVICE::kMouse);
-        Hooks::sprint_events[RE::INPUT_DEVICE::kGamepad] = Hooks::CreateSprintEvent(RE::INPUT_DEVICE::kGamepad);
+            Hooks::sprint_events[RE::INPUT_DEVICE::kKeyboard] = Hooks::CreateSprintEvent(RE::INPUT_DEVICE::kKeyboard);
+            Hooks::sprint_events[RE::INPUT_DEVICE::kMouse] = Hooks::CreateSprintEvent(RE::INPUT_DEVICE::kMouse);
+            Hooks::sprint_events[RE::INPUT_DEVICE::kGamepad] = Hooks::CreateSprintEvent(RE::INPUT_DEVICE::kGamepad);
 
-        ModCompatibility::TUDM::is_installed = ModCompatibility::TUDM::IsInstalled();
+            ModCompatibility::TUDM::is_installed = ModCompatibility::TUDM::IsInstalled();
+        }
     }
 }
 
