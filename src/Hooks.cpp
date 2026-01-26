@@ -92,7 +92,7 @@ void Hooks::InputHook::thunk(RE::BSTEventSource<RE::InputEvent*>* a_dispatcher, 
     }
 
     const auto player = RE::PlayerCharacter::GetSingleton();
-    if (!player->IsMoving() || !player->IsSneaking()) {
+    if (!player || !player->IsMoving() || !player->IsSneaking()) {
         return func(a_dispatcher, a_event);
     }
 
