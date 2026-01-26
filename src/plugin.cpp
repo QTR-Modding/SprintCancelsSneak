@@ -14,6 +14,10 @@ namespace {
             Hooks::sprint_events[RE::INPUT_DEVICE::kMouse] = Hooks::CreateSprintEvent(RE::INPUT_DEVICE::kMouse);
             Hooks::sprint_events[RE::INPUT_DEVICE::kGamepad] = Hooks::CreateSprintEvent(RE::INPUT_DEVICE::kGamepad);
 
+            Hooks::toggle_run_events[RE::INPUT_DEVICE::kKeyboard] = Hooks::CreateToggleRunEvent(RE::INPUT_DEVICE::kKeyboard);
+            Hooks::toggle_run_events[RE::INPUT_DEVICE::kMouse] = Hooks::CreateToggleRunEvent(RE::INPUT_DEVICE::kMouse);
+            Hooks::toggle_run_events[RE::INPUT_DEVICE::kGamepad] = Hooks::CreateToggleRunEvent(RE::INPUT_DEVICE::kGamepad);
+
             ModCompatibility::TUDM::is_installed = ModCompatibility::TUDM::IsInstalled();
         }
     }

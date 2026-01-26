@@ -17,7 +17,11 @@ RE::ButtonEvent* Hooks::CreateSprintEvent(const RE::INPUT_DEVICE a_device) {
     return CreateButtonEvent(a_device, RE::UserEvents::GetSingleton()->sprint);
 }
 
-void Hooks::UpdateSneakSprintEvents() {
+RE::ButtonEvent* Hooks::CreateToggleRunEvent(const RE::INPUT_DEVICE a_device) {
+    return CreateButtonEvent(a_device, RE::UserEvents::GetSingleton()->toggleRun);
+}
+
+void Hooks::UpdateButtonEvents() {
     const auto control_map = RE::ControlMap::GetSingleton();
     const auto user_events = RE::UserEvents::GetSingleton();
     for (auto& [device, event] : sprint_events) {
@@ -26,6 +30,39 @@ void Hooks::UpdateSneakSprintEvents() {
     for (auto& [device, event] : sneak_events) {
         event->SetIDCode(control_map->GetMappedKey(user_events->sneak, device));
     }
+    for (auto& [device, event] : toggle_run_events) {
+        event->SetIDCode(control_map->GetMappedKey(user_events->toggleRun, device));
+    }
+}
+
+bool Hooks::SendButtonEvent(RE::ButtonEvent* a_button, RE::PlayerInputHandler* a_handler) {
+    if (a_button && a_handler) {
+        a_handler->ProcessButton(a_button, &RE::PlayerControls::GetSingleton()->data);
+        return true;
+    }
+    return false;
+}
+
+bool Hooks::SendSneakEvent(const RE::INPUT_DEVICE a_device) {
+    if (const auto it = sneak_events.find(a_device); it != sneak_events.end()) {
+        return SendButtonEvent(it->second, RE::PlayerControls::GetSingleton()->sneakHandler);
+    }
+    return false;
+
+}
+
+bool Hooks::SendSprintEvent(const RE::INPUT_DEVICE a_device) {
+    if (const auto it = sprint_events.find(a_device); it != sprint_events.end()) {
+        return SendButtonEvent(it->second, RE::PlayerControls::GetSingleton()->sprintHandler);
+    }
+    return false;
+}
+
+bool Hooks::SendToggleRunEvent(const RE::INPUT_DEVICE a_device) {
+    if (const auto it = toggle_run_events.find(a_device); it != toggle_run_events.end()) {
+        return SendButtonEvent(it->second, RE::PlayerControls::GetSingleton()->toggleRunHandler);
+    }
+    return false;
 }
 
 void Hooks::Install() {
@@ -40,7 +77,7 @@ void Hooks::Install() {
 RE::BSEventNotifyControl Hooks::ControlsChangedHook::ProcessEvent_Hook(const RE::BSGamerProfileEvent* a_event,
                                                                        RE::BSTEventSource<RE::BSGamerProfileEvent>*
                                                                        a_eventSource) {
-    UpdateSneakSprintEvents();
+    UpdateButtonEvents();
     return ProcessEvent(this, a_event, a_eventSource);
 }
 
@@ -96,13 +133,10 @@ bool Hooks::InputHook::ProcessInput(RE::InputEvent* event) {
                     GetUp(event);
                 }
             } else if (!RE::PlayerCharacter::GetSingleton()->AsActorState()->IsSprinting()) {
-                if (const auto device = event->GetDevice(); sprint_events.contains(device)) {
-                    const auto player_controls = RE::PlayerControls::GetSingleton();
-                    const auto sprint_event = sprint_events.at(device);
-                    player_controls->sprintHandler->ProcessButton(sprint_event, &player_controls->data);
+                // for sneak roll
+                if (const auto device = event->GetDevice(); SendSprintEvent(device)) {
                     SKSE::GetTaskInterface()->AddTask([button_event]() {
-                        const auto player_controls2 = RE::PlayerControls::GetSingleton();
-                        player_controls2->sprintHandler->ProcessButton(button_event, &player_controls2->data);
+                        SendButtonEvent(button_event, RE::PlayerControls::GetSingleton()->sprintHandler);
                     });
                 }
             }
@@ -112,7 +146,7 @@ bool Hooks::InputHook::ProcessInput(RE::InputEvent* event) {
 }
 
 void Hooks::InputHook::InstallHook(SKSE::Trampoline& a_trampoline) {
-    const REL::Relocation<std::uintptr_t> target{REL::RelocationID(67315, 68617)};
+    const REL::Relocation target{REL::RelocationID(67315, 68617)};
     func = a_trampoline.write_call<5>(target.address() + 0x7B, thunk);
 }
 
@@ -121,12 +155,7 @@ void Hooks::InputHook::GetUp(const RE::InputEvent* event) {
         ModCompatibility::TUDM::StopSneak();
         return;
     }
-    if (const auto device = event->GetDevice(); sneak_events.contains(device)) {
-        const auto player_controls = RE::PlayerControls::GetSingleton();
-        const auto sneak_event = sneak_events.at(device);
-        player_controls->sneakHandler->ProcessButton(sneak_event, &player_controls->data);
-        if (sprint_events.contains(device)) {
-            player_controls->sprintHandler->ProcessButton(sprint_events.at(device), &player_controls->data);
-        }
+    if (const auto device = event->GetDevice(); SendSneakEvent(device)) {
+        SendSprintEvent(device);
     }
 }

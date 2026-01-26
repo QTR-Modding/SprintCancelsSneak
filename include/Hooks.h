@@ -5,13 +5,20 @@ namespace Hooks {
 
     inline std::map<RE::INPUT_DEVICE, RE::ButtonEvent*> sneak_events;
     inline std::map<RE::INPUT_DEVICE, RE::ButtonEvent*> sprint_events;
+    inline std::map<RE::INPUT_DEVICE, RE::ButtonEvent*> toggle_run_events;
 
     constexpr auto sprint_held_threshold_s = 250.f / 1000.0f;
 
     RE::ButtonEvent* CreateButtonEvent(RE::INPUT_DEVICE a_device, const RE::BSFixedString& user_event);
     RE::ButtonEvent* CreateSneakEvent(RE::INPUT_DEVICE a_device);
     RE::ButtonEvent* CreateSprintEvent(RE::INPUT_DEVICE a_device);
-    void UpdateSneakSprintEvents();
+    RE::ButtonEvent* CreateToggleRunEvent(RE::INPUT_DEVICE a_device);
+    void UpdateButtonEvents();
+
+    bool SendButtonEvent(RE::ButtonEvent* a_button, RE::PlayerInputHandler* a_handler);
+    bool SendSneakEvent(RE::INPUT_DEVICE a_device);
+    bool SendSprintEvent(RE::INPUT_DEVICE a_device);
+    bool SendToggleRunEvent(RE::INPUT_DEVICE a_device);
 
     class ControlsChangedHook : public RE::Journal_SystemTab {
         using ProcessMessage_t = RE::BSEventNotifyControl(Journal_SystemTab::*)(
