@@ -6,7 +6,8 @@
     "fast-cpp-csv-parser",
     "rsm-binary-io",
     "spdlog",
-    "rapidcsv"
+    "rapidcsv",
+    "directxtk"
   ],
   "overrides": [
     {
