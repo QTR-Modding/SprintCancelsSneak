@@ -133,7 +133,7 @@ bool Hooks::InputHook::ProcessInput(RE::InputEvent* event) {
             block = true;
             if (!button_event->IsUp()) {
                 push_exit_sneak |= ForceRun(event);
-                if (button_event->HeldDuration() > sprint_held_threshold_s + 0.1f * push_exit_sneak) {
+                if (button_event->HeldDuration() > sprint_held_threshold_s + 0.125f * push_exit_sneak) {
                     push_exit_sneak = false;
                     GetUp(event);
                 }
