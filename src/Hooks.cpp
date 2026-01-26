@@ -1,24 +1,27 @@
 #include "Hooks.h"
 #include "Settings.h"
 
-RE::ButtonEvent* Hooks::CreateButtonEvent(const RE::INPUT_DEVICE a_device, const RE::BSFixedString& user_event) {
+RE::ButtonEvent* Hooks::CreateButtonEvent(const RE::INPUT_DEVICE a_device, const RE::BSFixedString& user_event, float a_val, float a_helddownsecs) {
     const auto control_map = RE::ControlMap::GetSingleton();
     const auto key = control_map->GetMappedKey(user_event, a_device);
-    const auto button_event = RE::ButtonEvent::Create(a_device, user_event, key, 1.f, 0.f);
+    const auto button_event = RE::ButtonEvent::Create(a_device, user_event, key, a_val, a_helddownsecs);
     if (!button_event) logger::error("Failed to create button_event");
     return button_event;
 }
 
 RE::ButtonEvent* Hooks::CreateSneakEvent(const RE::INPUT_DEVICE a_device) {
-    return CreateButtonEvent(a_device, RE::UserEvents::GetSingleton()->sneak);
+    const auto a_event = CreateButtonEvent(a_device, RE::UserEvents::GetSingleton()->sneak);
+    return a_event;
 }
 
 RE::ButtonEvent* Hooks::CreateSprintEvent(const RE::INPUT_DEVICE a_device) {
-    return CreateButtonEvent(a_device, RE::UserEvents::GetSingleton()->sprint);
+    const auto a_event = CreateButtonEvent(a_device, RE::UserEvents::GetSingleton()->sprint);
+    return a_event;
 }
 
 RE::ButtonEvent* Hooks::CreateToggleRunEvent(const RE::INPUT_DEVICE a_device) {
-    return CreateButtonEvent(a_device, RE::UserEvents::GetSingleton()->toggleRun);
+    const auto a_event = CreateButtonEvent(a_device, RE::UserEvents::GetSingleton()->toggleRun);
+    return a_event;
 }
 
 void Hooks::UpdateButtonEvents() {
@@ -48,7 +51,6 @@ bool Hooks::SendSneakEvent(const RE::INPUT_DEVICE a_device) {
         return SendButtonEvent(it->second, RE::PlayerControls::GetSingleton()->sneakHandler);
     }
     return false;
-
 }
 
 bool Hooks::SendSprintEvent(const RE::INPUT_DEVICE a_device) {
@@ -124,12 +126,15 @@ void Hooks::InputHook::thunk(RE::BSTEventSource<RE::InputEvent*>* a_dispatcher, 
 }
 
 bool Hooks::InputHook::ProcessInput(RE::InputEvent* event) {
+    static bool push_exit_sneak = false;
     bool block = false;
     if (auto button_event = event->AsButtonEvent()) {
         if (button_event->GetUserEvent() == RE::UserEvents::GetSingleton()->sprint) {
             block = true;
             if (!button_event->IsUp()) {
-                if (button_event->HeldDuration() >= sprint_held_threshold_s) {
+                push_exit_sneak |= ForceRun(event);
+                if (button_event->HeldDuration() > sprint_held_threshold_s + 0.1f * push_exit_sneak) {
+                    push_exit_sneak = false;
                     GetUp(event);
                 }
             } else if (!RE::PlayerCharacter::GetSingleton()->AsActorState()->IsSprinting()) {
@@ -158,4 +163,11 @@ void Hooks::InputHook::GetUp(const RE::InputEvent* event) {
     if (const auto device = event->GetDevice(); SendSneakEvent(device)) {
         SendSprintEvent(device);
     }
+}
+
+bool Hooks::InputHook::ForceRun(const RE::InputEvent* event) {
+    if (!RE::PlayerControls::GetSingleton()->data.running) {
+        return SendToggleRunEvent(event->GetDevice());
+    }
+    return false;
 }

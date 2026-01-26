@@ -7,9 +7,9 @@ namespace Hooks {
     inline std::map<RE::INPUT_DEVICE, RE::ButtonEvent*> sprint_events;
     inline std::map<RE::INPUT_DEVICE, RE::ButtonEvent*> toggle_run_events;
 
-    constexpr auto sprint_held_threshold_s = 250.f / 1000.0f;
+    constexpr auto sprint_held_threshold_s = 200.f / 1000.0f;
 
-    RE::ButtonEvent* CreateButtonEvent(RE::INPUT_DEVICE a_device, const RE::BSFixedString& user_event);
+    RE::ButtonEvent* CreateButtonEvent(RE::INPUT_DEVICE a_device, const RE::BSFixedString& user_event, float a_val = 1.f, float a_helddownsecs = 0.f);
     RE::ButtonEvent* CreateSneakEvent(RE::INPUT_DEVICE a_device);
     RE::ButtonEvent* CreateSprintEvent(RE::INPUT_DEVICE a_device);
     RE::ButtonEvent* CreateToggleRunEvent(RE::INPUT_DEVICE a_device);
@@ -37,5 +37,6 @@ namespace Hooks {
         static bool ProcessInput(RE::InputEvent* event);
         static void InstallHook(SKSE::Trampoline& a_trampoline);
         static void GetUp(const RE::InputEvent* event);
+        static bool ForceRun(const RE::InputEvent* event);
     };
 };
