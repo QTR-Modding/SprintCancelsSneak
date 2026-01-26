@@ -1,5 +1,4 @@
 #include "Hooks.h"
-
 #include "Settings.h"
 
 RE::ButtonEvent* Hooks::CreateButtonEvent(RE::INPUT_DEVICE a_device, const RE::BSFixedString& user_event) {
@@ -22,10 +21,10 @@ void Hooks::UpdateSneakSprintEvents() {
     const auto control_map = RE::ControlMap::GetSingleton();
     const auto user_events = RE::UserEvents::GetSingleton();
     for (auto& [device, event] : sprint_events) {
-        event->idCode = control_map->GetMappedKey(user_events->sprint, device);
+        event->SetIDCode(control_map->GetMappedKey(user_events->sprint, device));
     }
     for (auto& [device, event] : sneak_events) {
-        event->idCode = control_map->GetMappedKey(user_events->sneak, device);
+        event->SetIDCode(control_map->GetMappedKey(user_events->sneak, device));
     }
 }
 
@@ -90,7 +89,7 @@ void Hooks::InputHook::thunk(RE::BSTEventSource<RE::InputEvent*>* a_dispatcher, 
 bool Hooks::InputHook::ProcessInput(RE::InputEvent* event) {
     bool block = false;
     if (auto button_event = event->AsButtonEvent()) {
-        if (button_event->userEvent == RE::UserEvents::GetSingleton()->sprint) {
+        if (button_event->GetUserEvent() == RE::UserEvents::GetSingleton()->sprint) {
             block = true;
             if (!button_event->IsUp()) {
                 if (button_event->HeldDuration() >= sprint_held_threshold_s) {
@@ -102,8 +101,8 @@ bool Hooks::InputHook::ProcessInput(RE::InputEvent* event) {
                     const auto sprint_event = sprint_events.at(device);
                     player_controls->sprintHandler->ProcessButton(sprint_event, &player_controls->data);
                     SKSE::GetTaskInterface()->AddTask([button_event]() {
-                        const auto player_controls = RE::PlayerControls::GetSingleton();
-                        player_controls->sprintHandler->ProcessButton(button_event, &player_controls->data);
+                        const auto player_controls2 = RE::PlayerControls::GetSingleton();
+                        player_controls2->sprintHandler->ProcessButton(button_event, &player_controls2->data);
                     });
                 }
             }
