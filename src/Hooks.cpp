@@ -101,8 +101,7 @@ void Hooks::InputHook::thunk(RE::BSTEventSource<RE::InputEvent*>* a_dispatcher, 
     if (!player->IsSneaking()) {
         for (auto current = *a_event; current; current = current->next) {
             if (const auto button_event = current->AsButtonEvent();
-                button_event && button_event->GetUserEvent() == RE::UserEvents::GetSingleton()->sprint &&
-                !button_event->IsUp()) {
+                button_event && button_event->GetUserEvent() == RE::UserEvents::GetSingleton()->sprint && !button_event->IsUp()) {
                 ForceRun(current);
                 break;
             }
