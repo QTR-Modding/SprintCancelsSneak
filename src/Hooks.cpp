@@ -94,7 +94,19 @@ void Hooks::InputHook::thunk(RE::BSTEventSource<RE::InputEvent*>* a_dispatcher, 
     }
 
     const auto player = RE::PlayerCharacter::GetSingleton();
-    if (!player || !player->IsMoving() || !player->IsSneaking()) {
+    if (!player || !player->IsMoving()) {
+        return func(a_dispatcher, a_event);
+    }
+
+    if (!player->IsSneaking()) {
+        for (auto current = *a_event; current; current = current->next) {
+            if (const auto button_event = current->AsButtonEvent();
+                button_event && button_event->GetUserEvent() == RE::UserEvents::GetSingleton()->sprint &&
+                !button_event->IsUp()) {
+                ForceRun(current);
+                break;
+            }
+        }
         return func(a_dispatcher, a_event);
     }
 
