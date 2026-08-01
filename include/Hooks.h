@@ -35,6 +35,7 @@ namespace Hooks {
         static void thunk(RE::BSTEventSource<RE::InputEvent*>* a_dispatcher, RE::InputEvent* const* a_event);
         static inline REL::Relocation<decltype(thunk)> func;
         static bool ProcessInput(RE::InputEvent* event);
+        static bool HandleInput(RE::InputEvent* event);
         static void InstallHook(SKSE::Trampoline& a_trampoline);
         static void GetUp(const RE::InputEvent* event);
         static bool ForceRun(const RE::InputEvent* event);

@@ -1,6 +1,10 @@
 #include "Hooks.h"
 #include "Settings.h"
 
+#ifdef SCS_WITH_DEVBENCH
+#include "DevBenchInput.h"
+#endif
+
 RE::ButtonEvent* Hooks::CreateButtonEvent(const RE::INPUT_DEVICE a_device, const RE::BSFixedString& user_event, float a_val, float a_helddownsecs) {
     const auto control_map = RE::ControlMap::GetSingleton();
     const auto key = control_map->GetMappedKey(user_event, a_device);
@@ -93,8 +97,21 @@ void Hooks::InputHook::thunk(RE::BSTEventSource<RE::InputEvent*>* a_dispatcher, 
         return func(a_dispatcher, a_event);
     }
 
+#ifdef SCS_WITH_DEVBENCH
+    DevBenchInput::Frame devbench_frame(a_dispatcher, a_event);
+#endif
+
     const auto player = RE::PlayerCharacter::GetSingleton();
-    if (!player || !player->IsMoving() || !player->IsSneaking()) {
+    if (!player || !player->IsMoving()) {
+        return func(a_dispatcher, a_event);
+    }
+
+    if (!player->IsSneaking()) {
+        for (auto current = *a_event; current; current = current->next) {
+            if (HandleInput(current)) {
+                break;
+            }
+        }
         return func(a_dispatcher, a_event);
     }
 
@@ -153,6 +170,23 @@ bool Hooks::InputHook::ProcessInput(RE::InputEvent* event) {
 void Hooks::InputHook::InstallHook(SKSE::Trampoline& a_trampoline) {
     const REL::Relocation target{REL::RelocationID(67315, 68617)};
     func = a_trampoline.write_call<5>(target.address() + 0x7B, thunk);
+}
+
+bool Hooks::InputHook::HandleInput(RE::InputEvent* event) {
+    static bool push_sprint_after_force_run = false;
+    const auto button_event = event ? event->AsButtonEvent() : nullptr;
+    if (!button_event || button_event->GetUserEvent() != RE::UserEvents::GetSingleton()->sprint) return false;
+    if (button_event->IsUp()) {
+        push_sprint_after_force_run = false;
+        return false;
+    }
+    push_sprint_after_force_run |= ForceRun(event);
+    if (push_sprint_after_force_run && button_event->HeldDuration() > sprint_held_threshold_s) {
+        if (!RE::PlayerCharacter::GetSingleton()->AsActorState()->IsSprinting()) {
+            SendSprintEvent(event->GetDevice());
+        }
+    }
+    return true;
 }
 
 void Hooks::InputHook::GetUp(const RE::InputEvent* event) {
