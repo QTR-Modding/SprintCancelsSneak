@@ -94,16 +94,22 @@ void Hooks::InputHook::thunk(RE::BSTEventSource<RE::InputEvent*>* a_dispatcher, 
     }
 
     const auto player = RE::PlayerCharacter::GetSingleton();
-    if (!player || !player->IsMoving() || !player->IsSneaking()) {
+    if (!player || !player->IsMoving()) {
         return func(a_dispatcher, a_event);
     }
+
+    if (player->IsSprinting() || !walk_toggled && !player->IsSneaking() && RE::PlayerControls::GetSingleton()->data.running) {
+        return func(a_dispatcher, a_event);
+    }
+
+    const auto is_sneaking = player->IsSneaking();
 
     auto first = *a_event;
     auto last = *a_event;
     size_t length = 0;
 
     for (auto current = *a_event; current; current = current->next) {
-        if (ProcessInput(current)) {
+        if (ProcessInput(current, is_sneaking)) {
             if (current != last) {
                 last->next = current->next;
             } else {
@@ -125,19 +131,18 @@ void Hooks::InputHook::thunk(RE::BSTEventSource<RE::InputEvent*>* a_dispatcher, 
     }
 }
 
-bool Hooks::InputHook::ProcessInput(RE::InputEvent* event) {
-    static bool push_exit_sneak = false;
+bool Hooks::InputHook::ProcessInput(RE::InputEvent* event, bool is_sneaking) {
     bool block = false;
     if (auto button_event = event->AsButtonEvent()) {
         if (button_event->GetUserEvent() == RE::UserEvents::GetSingleton()->sprint) {
             block = true;
             if (!button_event->IsUp()) {
-                push_exit_sneak |= ForceRun(event);
-                if (button_event->HeldDuration() > sprint_held_threshold_s + 0.125f * push_exit_sneak) {
-                    push_exit_sneak = false;
-                    GetUp(event);
+                walk_toggled |= ForceRun(event);
+                if (button_event->HeldDuration() > sprint_held_threshold_s + 0.125f * walk_toggled) {
+                    walk_toggled = false;
+                    StartSprint(event, is_sneaking);
                 }
-            } else if (!RE::PlayerCharacter::GetSingleton()->AsActorState()->IsSprinting()) {
+            } else if (is_sneaking) {
                 // for sneak roll
                 if (const auto device = event->GetDevice(); SendSprintEvent(device)) {
                     SKSE::GetTaskInterface()->AddTask([button_event]() {
@@ -155,7 +160,11 @@ void Hooks::InputHook::InstallHook(SKSE::Trampoline& a_trampoline) {
     func = a_trampoline.write_call<5>(target.address() + 0x7B, thunk);
 }
 
-void Hooks::InputHook::GetUp(const RE::InputEvent* event) {
+void Hooks::InputHook::StartSprint(const RE::InputEvent* event, bool is_sneaking) {
+    if (!is_sneaking) {
+        SendSprintEvent(event->GetDevice());
+        return;
+    }
     if (ModCompatibility::TUDM::is_installed) {
         ModCompatibility::TUDM::StopSneak();
         return;
