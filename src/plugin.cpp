@@ -2,9 +2,18 @@
 #include "logger.h"
 #include "Settings.h"
 
+#ifdef SCS_WITH_DEVBENCH
+#include "DevBenchIntegration.h"
+#endif
+
 namespace {
     // ReSharper disable once CppParameterMayBeConstPtrOrRef
     void OnMessage(SKSE::MessagingInterface::Message* message) {
+#ifdef SCS_WITH_DEVBENCH
+        if (message->type == SKSE::MessagingInterface::kPostLoad) {
+            DevBenchIntegration::Register();
+        }
+#endif
         if (message->type == SKSE::MessagingInterface::kDataLoaded) {
             Hooks::sneak_events[RE::INPUT_DEVICE::kKeyboard] = Hooks::CreateSneakEvent(RE::INPUT_DEVICE::kKeyboard);
             Hooks::sneak_events[RE::INPUT_DEVICE::kMouse] = Hooks::CreateSneakEvent(RE::INPUT_DEVICE::kMouse);

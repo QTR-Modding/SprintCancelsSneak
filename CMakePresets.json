@@ -35,7 +35,18 @@
         "name": "release",
         "inherits": [ "base" ],
         "displayName": "Release",
-        "cacheVariables": { "CMAKE_BUILD_TYPE": "Release" }
+        "cacheVariables": {
+          "CMAKE_BUILD_TYPE": "Release",
+          "SCS_WITH_DEVBENCH": "OFF"
+        }
+      },
+      {
+        "name": "release-devbench",
+        "inherits": [ "release" ],
+        "displayName": "Release + DevBench",
+        "cacheVariables": {
+          "SCS_WITH_DEVBENCH": "ON"
+        }
       },
       {
         "name": "relwithdebuginfo",
