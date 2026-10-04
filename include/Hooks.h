@@ -32,6 +32,7 @@ namespace Hooks {
     };
 
     struct InputHook {
+        static inline RE::INPUT_DEVICE pending_sprint = RE::INPUT_DEVICE::kNone;
         static void thunk(RE::BSTEventSource<RE::InputEvent*>* a_dispatcher, RE::InputEvent* const* a_event);
         static inline REL::Relocation<decltype(thunk)> func;
         static bool ProcessInput(RE::InputEvent* event);

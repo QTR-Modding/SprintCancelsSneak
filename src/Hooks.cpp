@@ -90,11 +90,37 @@ void Hooks::ControlsChangedHook::InstallHook(const REL::VariantID& varID) {
 
 void Hooks::InputHook::thunk(RE::BSTEventSource<RE::InputEvent*>* a_dispatcher, RE::InputEvent* const* a_event) {
     if (!a_dispatcher || !a_event) {
+        pending_sprint = RE::INPUT_DEVICE::kNone;
         return func(a_dispatcher, a_event);
     }
 
     const auto player = RE::PlayerCharacter::GetSingleton();
-    if (!player || !player->IsMoving() || !player->IsSneaking()) {
+    if (!player || !player->IsMoving()) {
+        pending_sprint = RE::INPUT_DEVICE::kNone;
+        return func(a_dispatcher, a_event);
+    }
+
+    if (pending_sprint != RE::INPUT_DEVICE::kNone) {
+        for (auto current = *a_event; current; current = current->next) {
+            const auto button = current->AsButtonEvent();
+            if (!button || button->GetDevice() != pending_sprint ||
+                button->GetUserEvent() != RE::UserEvents::GetSingleton()->sprint) continue;
+
+            if (button->IsUp()) {
+                pending_sprint = RE::INPUT_DEVICE::kNone;
+                return func(a_dispatcher, a_event);
+            }
+            if (button->IsDown() || player->AsActorState()->IsSprinting()) {
+                pending_sprint = RE::INPUT_DEVICE::kNone;
+            } else if (!player->IsSneaking() && player->IsRunning()) {
+                const auto device = std::exchange(pending_sprint, RE::INPUT_DEVICE::kNone);
+                SendSprintEvent(device);
+            }
+            break;
+        }
+    }
+
+    if (!player->IsSneaking()) {
         return func(a_dispatcher, a_event);
     }
 
@@ -133,7 +159,8 @@ bool Hooks::InputHook::ProcessInput(RE::InputEvent* event) {
             block = true;
             if (!button_event->IsUp()) {
                 push_exit_sneak |= ForceRun(event);
-                if (button_event->HeldDuration() > sprint_held_threshold_s + 0.125f * push_exit_sneak) {
+                if (pending_sprint == RE::INPUT_DEVICE::kNone &&
+                    button_event->HeldDuration() > sprint_held_threshold_s + 0.125f * push_exit_sneak) {
                     push_exit_sneak = false;
                     GetUp(event);
                 }
@@ -161,7 +188,12 @@ void Hooks::InputHook::GetUp(const RE::InputEvent* event) {
         return;
     }
     if (const auto device = event->GetDevice(); SendSneakEvent(device)) {
-        SendSprintEvent(device);
+        if (REL::Module::IsAtLeast(SKSE::RUNTIME_SSE_1_7_99)) {
+            // Vanilla can discard Sprint while the sneak-to-run transition is still active.
+            pending_sprint = device;
+        } else {
+            SendSprintEvent(device);
+        }
     }
 }
 
