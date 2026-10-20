@@ -1,5 +1,50 @@
 #include "Settings.h"
 
+void Settings::Load() {
+    constexpr auto path = "Data/SKSE/Plugins/SprintCancelsSneak.ini";
+    std::ifstream file(path);
+    if (!file) {
+        logger::info("{} not found, iTapAction = {}", path, tap_action);
+        return;
+    }
+    std::string line;
+    while (std::getline(file, line)) {
+        if (const auto comment = line.find(';'); comment != std::string::npos) {
+            line.erase(comment);
+        }
+        const auto eq = line.find('=');
+        if (eq == std::string::npos) continue;
+        auto key = line.substr(0, eq);
+        std::erase_if(key, [](unsigned char c) { return std::isspace(c); });
+        if (_stricmp(key.c_str(), "iTapAction") != 0) continue;
+        try {
+            const auto value = std::stoi(line.substr(eq + 1));
+            if (value >= 0 && value <= 2) tap_action = value;
+        } catch (...) {
+            logger::error("iTapAction is not a number: {}", line);
+        }
+    }
+    logger::info("iTapAction = {}", tap_action);
+}
+
+void Settings::LoadForms() {
+    roll_perk = RE::TESDataHandler::GetSingleton()->LookupForm<RE::BGSPerk>(roll_perk_id, "Skyrim.esm");
+    if (!roll_perk) logger::error("Sneak roll perk {:X} not found", roll_perk_id);
+}
+
+bool Settings::TapSprints() {
+    switch (tap_action) {
+        case 1:
+            return true;
+        case 2: {
+            const auto player = RE::PlayerCharacter::GetSingleton();
+            return !(roll_perk && player && player->HasPerk(roll_perk));
+        }
+        default:
+            return false;
+    }
+}
+
 bool ModCompatibility::TUDM::IsInstalled() {
     if (RE::TESDataHandler::GetSingleton()->LookupLoadedModByName(mod_name)) {
         logger::info("Ultimate Dodge Mod detected");
