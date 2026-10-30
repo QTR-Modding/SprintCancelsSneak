@@ -32,9 +32,11 @@ namespace Hooks {
     };
 
     struct InputHook {
+        static inline RE::INPUT_DEVICE pending_sprint = RE::INPUT_DEVICE::kNone;
         static void thunk(RE::BSTEventSource<RE::InputEvent*>* a_dispatcher, RE::InputEvent* const* a_event);
         static inline REL::Relocation<decltype(thunk)> func;
         static bool ProcessInput(RE::InputEvent* event);
+        static bool ProcessPendingSprint(RE::InputEvent* events, RE::PlayerCharacter* player);
         static void InstallHook(SKSE::Trampoline& a_trampoline);
         static void GetUp(const RE::InputEvent* event);
         static bool ForceRun(const RE::InputEvent* event);
