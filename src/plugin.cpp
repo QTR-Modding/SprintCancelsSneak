@@ -19,6 +19,7 @@ namespace {
             Hooks::toggle_run_events[RE::INPUT_DEVICE::kGamepad] = Hooks::CreateToggleRunEvent(RE::INPUT_DEVICE::kGamepad);
 
             ModCompatibility::TUDM::is_installed = ModCompatibility::TUDM::IsInstalled();
+            Settings::LoadForms();
         }
     }
 }
@@ -26,6 +27,7 @@ namespace {
 SKSEPluginLoad(const SKSE::LoadInterface *skse) {
     SetupLog();
     logger::info("Plugin loaded");
+    Settings::Load();
     SKSE::Init(skse);
     SKSE::GetMessagingInterface()->RegisterListener(OnMessage);
     Hooks::Install();

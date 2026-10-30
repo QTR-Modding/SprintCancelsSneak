@@ -149,6 +149,15 @@ bool Hooks::InputHook::ProcessInput(RE::InputEvent* event) {
                     GetUp(event);
                 }
             } else if (!RE::PlayerCharacter::GetSingleton()->AsActorState()->IsSprinting()) {
+                if (Settings::TapSprints()) {
+                    // tap: stand up and sprint, then pass the release on as a normal sprint tap
+                    push_exit_sneak = false;
+                    GetUp(event);
+                    SKSE::GetTaskInterface()->AddTask([button_event]() {
+                        SendButtonEvent(button_event, RE::PlayerControls::GetSingleton()->sprintHandler);
+                    });
+                    return block;
+                }
                 // for sneak roll
                 if (const auto device = event->GetDevice(); SendSprintEvent(device)) {
                     SKSE::GetTaskInterface()->AddTask([button_event]() {
