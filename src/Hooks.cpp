@@ -1,6 +1,27 @@
 #include "Hooks.h"
 #include "Settings.h"
 
+namespace {
+    // The stand-up transition clears playerFlags.isSprinting for a few frames after we leave sneak, so a sprint
+    // started by the synthetic press is dropped. Keep it set for this many frames while the sprint button is held.
+    constexpr int sprint_flag_frames = 30;
+    int sprint_flag_frames_left = 0;
+
+    void KeepSprintFlag(RE::PlayerCharacter* player, RE::InputEvent* const* a_event) {
+        if (sprint_flag_frames_left <= 0) return;
+        --sprint_flag_frames_left;
+        if (player->IsSneaking() || !a_event) return;
+        for (auto current = *a_event; current; current = current->next) {
+            const auto button_event = current->AsButtonEvent();
+            if (button_event && button_event->GetUserEvent() == RE::UserEvents::GetSingleton()->sprint &&
+                button_event->IsPressed()) {
+                player->GetPlayerRuntimeData().playerFlags.isSprinting = true;
+                return;
+            }
+        }
+    }
+}
+
 RE::ButtonEvent* Hooks::CreateButtonEvent(const RE::INPUT_DEVICE a_device, const RE::BSFixedString& user_event, float a_val, float a_helddownsecs) {
     const auto control_map = RE::ControlMap::GetSingleton();
     const auto key = control_map->GetMappedKey(user_event, a_device);
@@ -94,6 +115,7 @@ void Hooks::InputHook::thunk(RE::BSTEventSource<RE::InputEvent*>* a_dispatcher, 
     }
 
     const auto player = RE::PlayerCharacter::GetSingleton();
+    if (player) KeepSprintFlag(player, a_event);
     if (!player || !player->IsMoving() || !player->IsSneaking()) {
         return func(a_dispatcher, a_event);
     }
@@ -162,6 +184,7 @@ void Hooks::InputHook::GetUp(const RE::InputEvent* event) {
     }
     if (const auto device = event->GetDevice(); SendSneakEvent(device)) {
         SendSprintEvent(device);
+        sprint_flag_frames_left = sprint_flag_frames;
     }
 }
 
