@@ -90,11 +90,21 @@ void Hooks::ControlsChangedHook::InstallHook(const REL::VariantID& varID) {
 
 void Hooks::InputHook::thunk(RE::BSTEventSource<RE::InputEvent*>* a_dispatcher, RE::InputEvent* const* a_event) {
     if (!a_dispatcher || !a_event) {
+        pending_sprint = RE::INPUT_DEVICE::kNone;
         return func(a_dispatcher, a_event);
     }
 
     const auto player = RE::PlayerCharacter::GetSingleton();
-    if (!player || !player->IsMoving() || !player->IsSneaking()) {
+    if (!player) {
+        pending_sprint = RE::INPUT_DEVICE::kNone;
+        return func(a_dispatcher, a_event);
+    }
+
+    if (pending_sprint != RE::INPUT_DEVICE::kNone && ProcessPendingSprint(*a_event, player)) {
+        return func(a_dispatcher, a_event);
+    }
+
+    if (!player->IsMoving() || !player->IsSneaking()) {
         return func(a_dispatcher, a_event);
     }
 
@@ -133,7 +143,8 @@ bool Hooks::InputHook::ProcessInput(RE::InputEvent* event) {
             block = true;
             if (!button_event->IsUp()) {
                 push_exit_sneak |= ForceRun(event);
-                if (button_event->HeldDuration() > sprint_held_threshold_s + 0.125f * push_exit_sneak) {
+                if (pending_sprint == RE::INPUT_DEVICE::kNone &&
+                    button_event->HeldDuration() > sprint_held_threshold_s + 0.125f * push_exit_sneak) {
                     push_exit_sneak = false;
                     GetUp(event);
                 }
@@ -150,6 +161,27 @@ bool Hooks::InputHook::ProcessInput(RE::InputEvent* event) {
     return block;
 }
 
+bool Hooks::InputHook::ProcessPendingSprint(RE::InputEvent* events, RE::PlayerCharacter* player) {
+    for (auto current = events; current; current = current->next) {
+        const auto button = current->AsButtonEvent();
+        if (!button || button->GetDevice() != pending_sprint ||
+            button->GetUserEvent() != RE::UserEvents::GetSingleton()->sprint) continue;
+
+        if (button->IsUp()) {
+            pending_sprint = RE::INPUT_DEVICE::kNone;
+            return true;  // A held sprint's release must not trigger the short-press sneak roll.
+        }
+        const auto& movement = RE::PlayerControls::GetSingleton()->data.prevMoveVec;
+        if (button->IsDown() || player->AsActorState()->IsSprinting() || (movement.x == 0 && movement.y == 0)) {
+            pending_sprint = RE::INPUT_DEVICE::kNone;
+        } else if (!player->IsSneaking() && player->IsRunning()) {
+            SendSprintEvent(std::exchange(pending_sprint, RE::INPUT_DEVICE::kNone));
+        }
+        break;
+    }
+    return false;
+}
+
 void Hooks::InputHook::InstallHook(SKSE::Trampoline& a_trampoline) {
     const REL::Relocation target{REL::RelocationID(67315, 68617)};
     func = a_trampoline.write_call<5>(target.address() + 0x7B, thunk);
@@ -161,7 +193,7 @@ void Hooks::InputHook::GetUp(const RE::InputEvent* event) {
         return;
     }
     if (const auto device = event->GetDevice(); SendSneakEvent(device)) {
-        SendSprintEvent(device);
+        pending_sprint = device;
     }
 }
 
