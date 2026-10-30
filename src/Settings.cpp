@@ -12,7 +12,7 @@ bool ModCompatibility::TUDM::IsInstalled() {
 
 bool ModCompatibility::TUDM::StopSneak() {
     const auto skyrimVM = RE::SkyrimVM::GetSingleton();
-    if (const auto vm = skyrimVM ? skyrimVM->impl : nullptr) {
+    if (const auto vm = skyrimVM ? skyrimVM->GetVM() : nullptr) {
         if (const auto script = GetScript()) {
             auto obj = static_cast<RE::BSTSmartPointer<RE::BSScript::Object>>(script->get());
             RE::BSTSmartPointer<RE::BSScript::IStackCallbackFunctor> callback;
